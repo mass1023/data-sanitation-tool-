@@ -1,7 +1,6 @@
 mod domain;
 mod services;
 
-use config::Config;
 use dotenv::dotenv;
 use sqlx::mysql::MySqlPoolOptions;
 use futures::TryStreamExt;
@@ -11,6 +10,7 @@ use services::{
 };
 use log::info;
 use log4rs::init_file;
+use std::env;
 
 #[tokio::main]
 async fn main() -> Result<(), sqlx::Error> {
@@ -19,19 +19,13 @@ async fn main() -> Result<(), sqlx::Error> {
     // init logging with config file
     init_file("log4rs.yml", Default::default()).unwrap();
 
-    info!("Starting correction process");
-    let settings = Config::builder()
-        .add_source(config::Environment::with_prefix(""))
-        .build()
-        .expect("Failed to load settings");
-
-    let p_id: u32 = settings.get("p_id").unwrap_or(9);
-    let max_concurrent_updates = settings.get("max_concurrent_updates").unwrap_or(10);
-    let batch_size = settings.get("batch_size").unwrap_or(100);
-    let mysql_max_connections = settings.get("mysql_max_connections").unwrap_or(20);
-    let mysql_min_connections = settings.get("mysql_min_connections").unwrap_or(5);
-    let connection_string = settings
-        .get("connection_string")
+    info!("Starting the process");
+    let p_id: u32 = env::var("p_id").ok().and_then(|s| s.parse().ok()).unwrap_or(9);
+    let max_concurrent_updates = env::var("max_concurrent_updates").ok().and_then(|s| s.parse().ok()).unwrap_or(10);
+    let batch_size = env::var("batch_size").ok().and_then(|s| s.parse().ok()).unwrap_or(100);
+    let mysql_max_connections = env::var("mysql_max_connections").ok().and_then(|s| s.parse().ok()).unwrap_or(20);
+    let mysql_min_connections = env::var("mysql_min_connections").ok().and_then(|s| s.parse().ok()).unwrap_or(5);
+    let connection_string = env::var("connection_string")
         .unwrap_or_else(|_| "connectin_string".to_string());
 
     info!("Initializing database connection pool");
